@@ -2,10 +2,13 @@
 
 set -e # exit immediately on error
 
+BACKUPDIR=$HOME/Library/"Application Support"/MobileSync/Backup
 usage() {
-  name=$(basename "$0")
   >&2 cat <<HELP
-Usage: $name UDID [--domains] [--files] [--rebuild domain] [-h|--help]
+Usage: $(basename "$0") [UDID] [--domains] [--files] [--rebuild domain] [-h|--help]
+
+If the MobileSync/Backup directory contains only one backup,
+the UDID argument is optional.
 
 Actions:
   --domains  Print the unique domains listed in Manifest.db
@@ -15,8 +18,8 @@ Actions:
              into a new folder in the current directory
 
 Examples:
-  $name 1b...c6 --files | mlr --icsv --opprint cat
-  $name 1b...c6 --rebuild AppDomain-com.myapp
+  $(basename "$0") --files | mlr --icsv --opprint cat
+  $(basename "$0") --rebuild AppDomain-com.myapp
 HELP
 }
 
@@ -47,20 +50,26 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z ${UDID+missing} ]]; then
-  >&2 printf 'UDID was not provided; exiting\n'
-  exit 66 # EX_NOINPUT
+  # try to infer UDID based on available backups
+  UDIDs=("$BACKUPDIR"/[0-9A-Ea-e]*)
+  if [[ ${#UDIDs[@]} -eq 1 ]]; then
+    UDID=${UDIDs[0]}
+  else
+    >&2 printf 'UDID was not provided and cannot be inferred from Backup directory; exiting\n'
+    exit 66 # EX_NOINPUT
+  fi
 fi
 
-backupdir=~/Library/"Application Support"/MobileSync/Backup/$UDID
->&2 printf 'Using backupdir="%s"\n' "$backupdir"
+UDIDDIR=$UDIDDIR/$UDID
+>&2 printf 'Using UDIDDIR="%s"\n' "$UDIDDIR"
 
 domains() {
-  sqlite3 -csv -header "$backupdir/Manifest.db" \
+  sqlite3 -csv -header "$UDIDDIR/Manifest.db" \
     'SELECT domain FROM Files GROUP BY domain ORDER BY domain ASC'
 }
 
 files() {
-  sqlite3 -csv -header "$backupdir/Manifest.db" \
+  sqlite3 -csv -header "$UDIDDIR/Manifest.db" \
     'SELECT fileID, domain, relativePath FROM Files ORDER BY domain, relativePath ASC'
 }
 
@@ -69,7 +78,7 @@ _copy() {
   shasum=$(printf "%s-%s" "$DOMAIN" "$1" | shasum | awk '{print $1}')
   prefix=${shasum:0:2}
   # set up original & destination paths; if original exists, copy it over to destination
-  original=$backupdir/$prefix/$shasum
+  original=$UDIDDIR/$prefix/$shasum
   destination=$DOMAIN/$1
   if [[ -e "$original" ]]; then
     mkdir -p "$(dirname "$destination")"
@@ -83,7 +92,7 @@ _copy() {
 rebuild() {
   while read -r relativePath; do
     _copy "$relativePath"
-  done < <(sqlite3 "$backupdir/Manifest.db" "SELECT relativePath FROM Files WHERE domain = '$DOMAIN'")
+  done < <(sqlite3 "$UDIDDIR/Manifest.db" "SELECT relativePath FROM Files WHERE domain = '$DOMAIN'")
 }
 
 for ACTION in "${ACTIONS[@]}"; do
