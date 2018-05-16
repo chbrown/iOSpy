@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+
+set -e # exit immediately on error
+
+usage() {
+  name=$(basename "$0")
+  >&2 cat <<HELP
+Usage: $name UDID [--domains] [--files] [--rebuild domain] [-h|--help]
+
+Actions:
+  --domains  Print the unique domains listed in Manifest.db
+  --files    Read the Manifest.db for the specified device backup
+             and print a list of files in CSV format
+  --rebuild  Recreate the file structure for the specified domain
+             into a new folder in the current directory
+
+Examples:
+  $name 1b...c6 --files | mlr --icsv --opprint cat
+  $name 1b...c6 --rebuild AppDomain-com.myapp
+HELP
+}
+
+ACTIONS=()
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    [0-9A-Ea-e]*)
+      # TODO: throw on repeats
+      UDID=$1
+      ;;
+    --domains)
+      ACTIONS+=(domains)
+      ;;
+    --files)
+      ACTIONS+=(files)
+      ;;
+    --rebuild)
+      ACTIONS+=(rebuild)
+      shift
+      DOMAIN=$1
+      ;;
+  esac
+  shift
+done
+
+if [[ -z ${UDID+missing} ]]; then
+  >&2 printf 'UDID was not provided; exiting\n'
+  exit 66 # EX_NOINPUT
+fi
+
+backupdir=~/Library/"Application Support"/MobileSync/Backup/$UDID
+>&2 printf 'Using backupdir="%s"\n' "$backupdir"
+
+domains() {
+  sqlite3 -csv -header "$backupdir/Manifest.db" \
+    'SELECT domain FROM Files GROUP BY domain ORDER BY domain ASC'
+}
+
+files() {
+  sqlite3 -csv -header "$backupdir/Manifest.db" \
+    'SELECT fileID, domain, relativePath FROM Files ORDER BY domain, relativePath ASC'
+}
+
+_copy() {
+  # Usage: _copy relativePath
+  shasum=$(printf "%s-%s" "$DOMAIN" "$1" | shasum | awk '{print $1}')
+  prefix=${shasum:0:2}
+  # set up original & destination paths; if original exists, copy it over to destination
+  original=$backupdir/$prefix/$shasum
+  destination=$DOMAIN/$1
+  if [[ -e "$original" ]]; then
+    mkdir -p "$(dirname "$destination")"
+    cp "$original" "$destination"
+    >&2 printf 'Copied "%s" -> "%s"\n' "$original" "$destination"
+  else
+    >&2 printf 'Skipping missing file "%s" (%s)\n' "$1" "$shasum"
+  fi
+}
+
+rebuild() {
+  while read -r relativePath; do
+    _copy "$relativePath"
+  done < <(sqlite3 "$backupdir/Manifest.db" "SELECT relativePath FROM Files WHERE domain = '$DOMAIN'")
+}
+
+for ACTION in "${ACTIONS[@]}"; do
+  $ACTION
+done
