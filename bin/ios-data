@@ -2,7 +2,6 @@
 
 set -e # exit immediately on error
 
-BACKUPDIR=$HOME/Library/"Application Support"/MobileSync/Backup
 usage() {
   >&2 cat <<HELP
 Usage: $(basename "$0") [UDID] [--domains] [--files] [--rebuild domain] [-h|--help]
@@ -51,16 +50,17 @@ done
 
 if [[ -z ${UDID+missing} ]]; then
   # try to infer UDID based on available backups
-  UDIDs=("$BACKUPDIR"/[0-9A-Ea-e]*)
-  if [[ ${#UDIDs[@]} -eq 1 ]]; then
-    UDID=${UDIDs[0]}
+  UDIDDIRs=("$HOME/Library/Application Support/MobileSync/Backup/"[0-9A-Ea-e]*)
+  if [[ ${#UDIDDIRs[@]} == 1 ]]; then
+    UDIDDIR=${UDIDDIRs[0]}
   else
     >&2 printf 'UDID was not provided and cannot be inferred from Backup directory; exiting\n'
     exit 66 # EX_NOINPUT
   fi
+else
+  UDIDDIR=$UDIDDIR/$UDID
 fi
 
-UDIDDIR=$UDIDDIR/$UDID
 >&2 printf 'Using UDIDDIR="%s"\n' "$UDIDDIR"
 
 domains() {
