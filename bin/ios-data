@@ -82,7 +82,7 @@ _copy() {
   destination=$DOMAIN/$1
   if [[ -e "$original" ]]; then
     mkdir -p "$(dirname "$destination")"
-    cp "$original" "$destination"
+    cp -p "$original" "$destination"
     >&2 printf 'Copied "%s" -> "%s"\n' "$original" "$destination"
   else
     >&2 printf 'Skipping missing file "%s" (%s)\n' "$1" "$shasum"
