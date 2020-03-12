@@ -52,12 +52,12 @@ BACKUPDIR="$HOME/Library/Application Support/MobileSync/Backup"
 
 if [[ -z ${UDID+missing} ]]; then
   # try to infer UDID based on available backups
-  mapfile -t UDIDDIRs < <(find "$BACKUPDIR" -depth 2 -name Manifest.db -print0 | xargs -0 -n1 dirname)
-  if (( ${#UDIDDIRs[@]} >= 1 )); then
-    if (( ${#UDIDDIRs[@]} > 1 )); then
-      >&2 printf 'UDID was not provided and Backup directory contains multiple; using first listed\n'
+  mapfile -t manifests < <(ls -t "$BACKUPDIR"/*/Manifest.db)
+  if (( ${#manifests[@]} >= 1 )); then
+    if (( ${#manifests[@]} > 1 )); then
+      >&2 printf 'UDID was not provided and Backup directory contains multiple; using most recent\n'
     fi
-    UDIDDIR=${UDIDDIRs[0]}
+    UDIDDIR=$(dirname "${manifests[0]}")
   else
     >&2 printf 'UDID was not provided and cannot be inferred from Backup directory; exiting\n'
     exit 66 # EX_NOINPUT
