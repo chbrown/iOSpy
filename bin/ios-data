@@ -6,8 +6,8 @@ usage() {
   >&2 cat <<HELP
 Usage: $(basename "$0") [UDID] [--domains] [--files] [--rebuild domain] [-h|--help]
 
-If the MobileSync/Backup directory contains only one backup,
-the UDID argument is optional.
+If omitted, UDID is inferred from the most recently modified Manifest.db
+found in the directories located at .../MobileSync/Backup/*
 
 Actions:
   --domains  Print the unique domains listed in Manifest.db
