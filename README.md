@@ -11,5 +11,5 @@ Install with [GNU Stow](https://www.gnu.org/software/stow/):
 
 ## License
 
-Copyright 2018 Christopher Brown.
-[MIT Licensed](https://chbrown.github.io/licenses/MIT/#2018).
+Copyright 2018–2020 Christopher Brown.
+[MIT Licensed](https://chbrown.github.io/licenses/MIT/#2018-2020).
