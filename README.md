@@ -1,12 +1,6 @@
-## iOS-utils
+# `iOSpy`
 
-### Instructions
-
-Install with [GNU Stow](https://www.gnu.org/software/stow/):
-
-    git clone https://github.com/chbrown/iOS-utils
-    cd iOS-utils
-    stow -t /usr/local/bin bin
+This is a tool extracting data from iOS MobileSync backups.
 
 
 ## License
