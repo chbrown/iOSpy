@@ -73,7 +73,7 @@ def sha1(data: Union[bytes, str]) -> str:
         fileID = sha1(f"{domain}-{relativePath}")
     """
     if isinstance(data, str):
-        data = data.encode("ascii")
+        data = data.encode()
     hashobj = hashlib.sha1()
     hashobj.update(data)
     return hashobj.hexdigest()
