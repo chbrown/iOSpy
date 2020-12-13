@@ -1,7 +1,8 @@
-from typing import Iterator, Union
+from typing import Any, Iterator, Union
 import hashlib
 import logging
 import os
+import plistlib
 import sqlite3
 
 import magic
@@ -23,6 +24,39 @@ def sha1(data: Union[bytes, str]) -> str:
     hashobj = hashlib.sha1()
     hashobj.update(data)
     return hashobj.hexdigest()
+
+
+def _normalize_plist(value: Any) -> Any:
+    """
+    Convert any UID instances in `value` data structure to plain dicts (recursively).
+    """
+    if isinstance(value, plistlib.UID):
+        return {"CF$UID": value.data}
+    if isinstance(value, dict):
+        return {k: _normalize_plist(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_normalize_plist(v) for v in value]
+    return value
+
+
+def convert_plist(
+    source: Union[bytes, str, os.PathLike],
+    target: Union[bytes, str, os.PathLike] = None,
+    fmt: plistlib.PlistFormat = plistlib.PlistFormat.FMT_XML,
+):
+    """
+    Read plist from `source` file and write to `target` file in specified format.
+
+    If `target` is omitted, defaults to `source` (i.e., convert in-place).
+    """
+    if target is None:
+        target = source
+    with open(source, "rb") as fp:
+        root = plistlib.load(fp)
+    # plutil can convert UIDs to XML no problem, but Python chokes :(
+    root = _normalize_plist(root)
+    with open(target, "wb") as fp:
+        plistlib.dump(root, fp, fmt=fmt, sort_keys=False)
 
 
 def query(
