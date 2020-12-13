@@ -83,6 +83,19 @@ def query(
             yield from query(conn, sql, parameters=parameters)
 
 
+def dump_sql(
+    database: Union[bytes, str, os.PathLike],
+    sql: Union[bytes, str, os.PathLike],
+):
+    """
+    Open SQLite database and dump in SQL text format, just like the '.dump' command.
+    """
+    with open(sql, "w") as fp:
+        with sqlite3.connect(database) as conn:
+            for line in conn.iterdump():
+                fp.write(f"{line}\n")
+
+
 def read_magic(path: Union[bytes, str, os.PathLike]) -> magic.FileMagic:
     """
     Detect file type using 'file-magic' library.
