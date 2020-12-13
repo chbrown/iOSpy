@@ -1,7 +1,14 @@
 from typing import Iterator, Union
 import hashlib
+import logging
 import os
 import sqlite3
+
+import magic
+
+logger = logging.getLogger(__name__)
+
+DEFAULT_FILE_MAGIC = magic.FileMagic("application/octet-stream", "binary", "data")
 
 
 def sha1(data: Union[bytes, str]) -> str:
@@ -40,3 +47,16 @@ def query(
     else:
         with sqlite3.connect(database) as conn:
             yield from query(conn, sql, parameters=parameters)
+
+
+def read_magic(path: Union[bytes, str, os.PathLike]) -> magic.FileMagic:
+    """
+    Detect file type using 'file-magic' library.
+
+    Work around 'file-magic' bug by returning default FileMagic instance.
+    """
+    try:
+        return magic.detect_from_filename(path)
+    except UnicodeDecodeError as exc:
+        logger.warning("Failed to perform magic: %s; using fallback", exc)
+        return DEFAULT_FILE_MAGIC
