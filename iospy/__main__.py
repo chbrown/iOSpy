@@ -69,8 +69,11 @@ def files(ctx: click.Context, domain: str):
     """
     manifest = ctx.obj["manifest"]
     logger.info("Listing files from manifest at %s", manifest)
-    for row in mobilesync.iter_files(manifest, domain):
-        print(*row, sep="\t")
+    for file in mobilesync.iter_files(manifest, domain):
+        fileID = file["fileID"]
+        domain = file["domain"]
+        relativePath = file["relativePath"]
+        print(fileID, domain, relativePath, sep="\t")
 
 
 @cli.command()

@@ -1,11 +1,12 @@
 from pathlib import Path
-from typing import Iterator, Optional, Tuple, Union
+from typing import Iterator, Optional, Union
 import logging
 import os
 import shutil
-import sqlite3
 
 import appdirs
+
+from .util import query
 
 logger = logging.getLogger(__name__)
 
@@ -31,39 +32,35 @@ def iter_domains(manifest: Union[bytes, str, os.PathLike]) -> Iterator[str]:
     """
     Select unique domains from the 'Files' table in the manifest database.
     """
-    with sqlite3.connect(manifest) as conn:
-        cur = conn.cursor()
-        cur.execute(
-            """
-            SELECT domain
-            FROM Files
-            GROUP BY domain
-            ORDER BY domain ASC
-            """
-        )
-        for row in cur:
-            yield row[0]
+    for row in query(
+        manifest,
+        """
+        SELECT domain
+        FROM Files
+        GROUP BY domain
+        ORDER BY domain ASC
+        """,
+    ):
+        yield row["domain"]
 
 
 def iter_files(
     manifest: Union[bytes, str, os.PathLike], domain: str = None
-) -> Iterator[Tuple[str, str, str]]:
+) -> Iterator[dict]:
     """
     Select fileID, domain, and relativePath from the 'Files' table in the manifest,
     limiting to those where domain == `domain`, if specified.
     """
-    with sqlite3.connect(manifest) as conn:
-        cur = conn.cursor()
-        cur.execute(
-            """
-            SELECT fileID, domain, relativePath
-            FROM Files
-            WHERE :domain IS NULL OR domain = :domain
-            ORDER BY domain, relativePath ASC
-            """,
-            {"domain": domain},
-        )
-        yield from cur
+    return query(
+        manifest,
+        """
+        SELECT *
+        FROM Files
+        WHERE :domain IS NULL OR domain = :domain
+        ORDER BY domain, relativePath ASC
+        """,
+        {"domain": domain},
+    )
 
 
 def rebuild(
@@ -78,7 +75,10 @@ def rebuild(
     """
     src_base = Path(manifest).parent
     dst_base = Path(target)
-    for fileID, domain, relativePath in iter_files(manifest, domain):
+    for file in iter_files(manifest, domain):
+        fileID = file["fileID"]
+        domain = file["domain"]
+        relativePath = file["relativePath"]
         src = src_base / fileID[:2] / fileID
         # if original exists, copy it over to destination, otherwise do nothing
         if src.exists():
