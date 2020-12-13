@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Iterator, Optional, Tuple, Union
 import logging
 import os
+import shutil
 import sqlite3
 
 import appdirs
@@ -63,3 +64,27 @@ def iter_files(
             {"domain": domain},
         )
         yield from cur
+
+
+def rebuild(
+    manifest: Union[bytes, str, os.PathLike],
+    domain: str = None,
+    target: Union[bytes, str, os.PathLike] = ".",
+):
+    """
+    Rebuild the deep structure (creating directories as needed) specified in the
+    manifest by copying the sha1-named files in the backup directory into filepaths
+    like $target/$domain/path/to/file.txt
+    """
+    src_base = Path(manifest).parent
+    dst_base = Path(target)
+    for fileID, domain, relativePath in iter_files(manifest, domain):
+        src = src_base / fileID[:2] / fileID
+        # if original exists, copy it over to destination, otherwise do nothing
+        if src.exists():
+            dst = dst_base / domain / relativePath
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dst)
+            logger.info("Copied %s -> %s", fileID, dst)
+        else:
+            logger.debug("Skipping missing file %s -> %s", fileID, relativePath)

@@ -4,7 +4,6 @@ iOSpy CLI
 from pathlib import Path
 from typing import Union
 import logging
-import shutil
 
 import click
 
@@ -95,18 +94,7 @@ def rebuild(ctx: click.Context, domain: str, output: str):
     """
     manifest = ctx.obj["manifest"]
     logger.info("Rebuilding file structure from manifest at %s", manifest)
-    src_base = Path(manifest).parent
-    dst_base = Path(output)
-    for fileID, domain, relativePath in mobilesync.iter_files(manifest, domain):
-        src = src_base / fileID[:2] / fileID
-        # if original exists, copy it over to destination, otherwise do nothing
-        if src.exists():
-            dst = dst_base / domain / relativePath
-            dst.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(src, dst)
-            logger.info("Copied %s -> %s", fileID, dst)
-        else:
-            logger.debug("Skipping missing file %s -> %s", fileID, relativePath)
+    mobilesync.rebuild(manifest, domain=domain, target=output)
 
 
 main = cli.main
