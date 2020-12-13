@@ -6,7 +6,7 @@ import shutil
 
 import appdirs
 
-from .util import query
+from .util import query, postprocess
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +67,7 @@ def rebuild(
     manifest: Union[bytes, str, os.PathLike],
     domain: str = None,
     target: Union[bytes, str, os.PathLike] = ".",
+    postprocess_files: bool = False,
 ):
     """
     Rebuild the deep structure (creating directories as needed) specified in the
@@ -86,5 +87,7 @@ def rebuild(
             dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dst)
             logger.info("Copied %s -> %s", fileID, dst)
+            if postprocess_files:
+                postprocess(dst)
         else:
             logger.debug("Skipping missing file %s -> %s", fileID, relativePath)

@@ -78,6 +78,7 @@ def files(ctx: click.Context, domain: str):
 
 @cli.command()
 @click.option("--domain", type=str, help="Limit to specific domain.")
+@click.option("--post/--raw", help="Run postprocessing on written files.")
 @click.option(
     "--output",
     type=click.Path(exists=True, file_okay=False),
@@ -85,7 +86,7 @@ def files(ctx: click.Context, domain: str):
     default=".",
 )
 @click.pass_context
-def rebuild(ctx: click.Context, domain: str, output: str):
+def rebuild(ctx: click.Context, domain: str, post: bool, output: str):
     """
     Copy and rename files from backup into `output`.
 
@@ -97,7 +98,7 @@ def rebuild(ctx: click.Context, domain: str, output: str):
     """
     manifest = ctx.obj["manifest"]
     logger.info("Rebuilding file structure from manifest at %s", manifest)
-    mobilesync.rebuild(manifest, domain=domain, target=output)
+    mobilesync.rebuild(manifest, domain=domain, target=output, postprocess_files=post)
 
 
 main = cli.main
