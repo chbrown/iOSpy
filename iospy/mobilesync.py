@@ -1,6 +1,5 @@
 from pathlib import Path
 from typing import Iterator, Optional, Tuple, Union
-import hashlib
 import logging
 import sqlite3
 
@@ -63,17 +62,3 @@ def iter_files(
             {"domain": domain},
         )
         yield from cur
-
-
-def sha1(data: Union[bytes, str]) -> str:
-    """
-    Generate hexdigest representation of SHA-1 hash of `data`.
-
-    This can be used to compute the "fileID" for a given `domain` and `relativePath`:
-        fileID = sha1(f"{domain}-{relativePath}")
-    """
-    if isinstance(data, str):
-        data = data.encode()
-    hashobj = hashlib.sha1()
-    hashobj.update(data)
-    return hashobj.hexdigest()
