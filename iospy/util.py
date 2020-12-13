@@ -107,3 +107,21 @@ def read_magic(path: Union[bytes, str, os.PathLike]) -> magic.FileMagic:
     except UnicodeDecodeError as exc:
         logger.warning("Failed to perform magic: %s; using fallback", exc)
         return DEFAULT_FILE_MAGIC
+
+
+def postprocess(path: Union[bytes, str, os.PathLike]):
+    """
+    Postprocess file based on its type (as determined by 'magic').
+    * Convert Apple property lists that are binary to xml format (in-place)
+    * Dump SQLite databases to new SQL file alongside original (if not exists)
+    """
+    file_magic = read_magic(path)
+    if file_magic.name == "Apple binary property list":
+        logger.info("Converting binary plist to xml: %s", path)
+        convert_plist(path)
+    if file_magic.mime_type == "application/x-sqlite3":
+        dump_path = f"{path}.sql"
+        if not os.path.exists(dump_path):
+            logger.info("Dumping SQLite database: %s", path)
+            dump_sql(path, dump_path)
+            logger.info("Finished writing SQL: %s", dump_path)
