@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Iterator, Optional, Tuple, Union
 import logging
+import os
 import sqlite3
 
 import appdirs
@@ -25,7 +26,7 @@ def latest_manifest() -> Optional[Path]:
     return max(iter_manifests(), default=None, key=lambda p: p.stat().st_mtime)
 
 
-def iter_domains(manifest: Union[Path, str]) -> Iterator[str]:
+def iter_domains(manifest: Union[bytes, str, os.PathLike]) -> Iterator[str]:
     """
     Select unique domains from the 'Files' table in the manifest database.
     """
@@ -44,7 +45,7 @@ def iter_domains(manifest: Union[Path, str]) -> Iterator[str]:
 
 
 def iter_files(
-    manifest: Union[Path, str], domain: str = None
+    manifest: Union[bytes, str, os.PathLike], domain: str = None
 ) -> Iterator[Tuple[str, str, str]]:
     """
     Select fileID, domain, and relativePath from the 'Files' table in the manifest,
